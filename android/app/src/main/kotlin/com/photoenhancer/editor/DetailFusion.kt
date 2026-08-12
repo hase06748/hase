@@ -123,8 +123,61 @@ object DetailFusion {
     }
 
     private fun anchor(orig: Int, sharpened: Int): Int {
-        val v = orig + ((sharpened - orig) * 0.92f).roundToInt()
+        val v = orig + ((sharpened - orig) * 0.95f).roundToInt()
         return if (v < 0) 0 else if (v > 255) 255 else v
+    }
+
+    /**
+     * Professional HDR & Natural Color Grading Stage.
+     * Applies subtle local tone mapping and micro-contrast adjustment 
+     * to enhance dynamic range and pop colors without over-saturation.
+     */
+    fun applyHdrAndColor(bmp: Bitmap) {
+        val w = bmp.width
+        val h = bmp.height
+        if (w < 5 || h < 5) return
+
+        val stripe = max(64, min(h, 3_000_000 / max(w, 1)))
+        var top = 0
+        while (top < h) {
+            val rows = min(stripe, h - top)
+            val px = IntArray(w * rows)
+            bmp.getPixels(px, 0, w, 0, top, w, rows)
+
+            for (i in px.indices) {
+                val c = px[i]
+                var r = (c shr 16) and 0xFF
+                var g = (c shr 8) and 0xFF
+                var b = c and 0xFF
+
+                // Convert to YUV / Luma for intelligent tone mapping
+                val y = 0.299f * r + 0.587f * g + 0.114f * b
+                
+                // Subtle S-Curve for HDR micro-contrast (Shadow lifting & Highlight restraint)
+                val normY = y / 255.0f
+                // S-curve formula: smoothstep enhancement
+                val enhancedY = normY * normY * (3.0f - 2.0f * normY)
+                val deltaY = (enhancedY * 255.0f - y) * 0.18f // 18% strength for natural look
+
+                // Apply delta to RGB while preserving color ratios (Vibrancy preservation)
+                var fr = (r + deltaY).roundToInt()
+                var fg = (g + deltaY).roundToInt()
+                var fb = (b + deltaY).roundToInt()
+
+                // Slight natural saturation boost (Vibrancy)
+                val luma = 0.299f * fr + 0.587f * fg + 0.114f * fb
+                fr = (luma + (fr - luma) * 1.08f).roundToInt()
+                fg = (luma + (fg - luma) * 1.08f).roundToInt()
+                fb = (luma + (fb - luma) * 1.08f).roundToInt()
+
+                px[i] = (0xFF shl 24) or
+                    (fr.coerceIn(0, 255) shl 16) or
+                    (fg.coerceIn(0, 255) shl 8) or
+                    fb.coerceIn(0, 255)
+            }
+            bmp.setPixels(px, 0, w, 0, top, w, rows)
+            top += rows
+        }
     }
 
     private fun lumaOf(c: Int): Float =

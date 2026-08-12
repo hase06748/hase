@@ -266,6 +266,9 @@ object Pipeline {
 
         if (working !== source) working.recycle()
 
+        // ---------------------------------------------------- 7. HDR & Color Grading
+        DetailFusion.applyHdrAndColor(upscaled)
+
         report(Phase.DONE, 1, 1)
         return Outcome(
             bitmap = upscaled,

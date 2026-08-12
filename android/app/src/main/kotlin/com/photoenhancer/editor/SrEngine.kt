@@ -7,6 +7,7 @@ import ai.onnxruntime.providers.NNAPIFlags
 import android.content.Context
 import android.graphics.Bitmap
 import java.nio.FloatBuffer
+import java.util.ArrayList
 import java.util.EnumSet
 import kotlin.math.PI
 import kotlin.math.cos
@@ -36,13 +37,13 @@ import kotlin.math.roundToInt
  */
 object SrEngine {
 
-    const val TILE = 64
-    const val OVERLAP = 12
+    const val TILE = 128
+    const val OVERLAP = 16
     const val SCALE = 4
 
-    private const val STRIDE = TILE - 2 * OVERLAP      // 40
-    private const val OUT_TILE = TILE * SCALE          // 256
-    private const val OUT_STRIDE = STRIDE * SCALE      // 192
+    private const val STRIDE = TILE - 2 * OVERLAP      // 96
+    private const val OUT_TILE = TILE * SCALE          // 512
+    private const val OUT_STRIDE = STRIDE * SCALE      // 384
     private const val MODEL_ASSET_SOTA = "swinir_x4.onnx"
     private const val MODEL_ASSET_FALLBACK = "hat_x4.onnx"
     private const val PREFS = "sr_engine"
