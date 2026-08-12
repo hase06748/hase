@@ -673,7 +673,8 @@ class _HomePageState extends State<HomePage> {
       'دافئة' => const Color(0xFFD9C45A),
       _ => AppTheme.accent,
     };
-    final parts = <String>['حرارة الجهاز: ${p.thermal}'];
+    final tempStr = p.tempC > 0 ? '${p.tempC.toStringAsFixed(1)}°C' : p.thermal;
+    final parts = <String>['حرارة الجهاز: $tempStr (${p.thermal})'];
     if (p.headroom >= 0) parts.add('السعة الحرارية ${p.headroom}%');
     if (p.throttling) parts.add('تهدئة تلقائية');
 

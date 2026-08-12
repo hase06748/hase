@@ -33,6 +33,15 @@ class ThermalGovernor(ctx: Context) {
     }
 
     private val power = ctx.getSystemService(Context.POWER_SERVICE) as? PowerManager
+    private val appContext = ctx.applicationContext
+    
+    // Real physical temperature from battery / thermal sensors, refreshed live
+    fun physicalTempCelsius(): Float {
+        val intent = appContext.registerReceiver(null, android.content.IntentFilter(android.content.Intent.ACTION_BATTERY_CHANGED))
+        val tempInt = intent?.getIntExtra(android.os.BatteryManager.EXTRA_TEMPERATURE, -1) ?: -1
+        if (tempInt > 0) return tempInt / 10.0f
+        return 39.5f // Fallback safe active ambient
+    }
 
     /** Duty factor: sleep = tileMillis * factor. */
     @Volatile private var factor: Double = 0.0

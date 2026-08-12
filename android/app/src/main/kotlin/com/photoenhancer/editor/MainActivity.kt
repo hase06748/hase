@@ -4,6 +4,7 @@ import android.content.ClipData
 import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
+import android.os.Build
 import android.os.PowerManager
 import androidx.core.content.FileProvider
 import io.flutter.embedding.android.FlutterActivity
@@ -290,6 +291,14 @@ class MainActivity : FlutterActivity() {
                     )
                     val threads = call.argument<Int>("threads")
                         ?: Runtime.getRuntime().availableProcessors()
+                    // Start Foreground Service for continuous background processing
+                    val serviceIntent = Intent(applicationContext, ProcessingService::class.java)
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        applicationContext.startForegroundService(serviceIntent)
+                    } else {
+                        applicationContext.startService(serviceIntent)
+                    }
+
                     scope.launch {
                         var scaled: Bitmap? = null
                         try {
@@ -324,6 +333,7 @@ class MainActivity : FlutterActivity() {
                                         lastEmit = now
                                         val sink = progressSink
                                         if (sink != null) {
+                                            val tempC = governor.physicalTempCelsius()
                                             runOnUiThread {
                                                 sink.success(
                                                     mapOf(
@@ -333,6 +343,7 @@ class MainActivity : FlutterActivity() {
                                                         "total" to p.total,
                                                         "tileMs" to p.tileMs,
                                                         "thermal" to p.thermal,
+                                                        "tempC" to tempC,
                                                         "headroom" to p.headroomPercent,
                                                         "throttling" to p.throttling,
                                                         "pausedMs" to p.pausedMs,
@@ -345,6 +356,8 @@ class MainActivity : FlutterActivity() {
                                 }
                             } finally {
                                 if (wake.isHeld) wake.release()
+                                // Stop Foreground Service when done
+                                applicationContext.stopService(Intent(applicationContext, ProcessingService::class.java))
                             }
                             if (outcome == null) {
                                 withContext(Dispatchers.Main) { result.success(null) }
@@ -391,6 +404,8 @@ class MainActivity : FlutterActivity() {
                         } finally {
                             scaled?.recycle()
                             busy.set(false)
+                            // Ensure service is stopped if an exception occurs
+                            runCatching { applicationContext.stopService(Intent(applicationContext, ProcessingService::class.java)) }
                         }
                     }
                 }

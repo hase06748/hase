@@ -266,6 +266,9 @@ class TileProgress {
   /// Total time spent cooling down so far.
   final int pausedMs;
 
+  /// Physical device temperature in Celsius.
+  final double tempC;
+
   const TileProgress(
     this.done,
     this.total, {
@@ -274,6 +277,7 @@ class TileProgress {
     this.note = '',
     this.tileMs = 0,
     this.thermal = '',
+    this.tempC = 0.0,
     this.headroom = -1,
     this.throttling = false,
     this.pausedMs = 0,
@@ -431,6 +435,7 @@ class SrBridge {
         note: (m['note'] as String?) ?? '',
         tileMs: (m['tileMs'] as num?)?.toInt() ?? 0,
         thermal: (m['thermal'] as String?) ?? '',
+        tempC: (m['tempC'] as num?)?.toDouble() ?? 0.0,
         headroom: (m['headroom'] as int?) ?? -1,
         throttling: (m['throttling'] as bool?) ?? false,
         pausedMs: (m['pausedMs'] as num?)?.toInt() ?? 0,
