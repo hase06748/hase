@@ -49,7 +49,7 @@ object ModelStore {
             role = "المحرّك الاحترافي المتقدم — انتباه عالمي للحواف",
             bytes = 64_300_000L,
             keywords = listOf("swinir", "swin", "srx4", "sr_x4", "003_realsr"),
-            required = true
+            required = false
         ),
         Spec(
             asset = "hat_x4.onnx",
@@ -165,8 +165,10 @@ object ModelStore {
         SPECS.associate { it.asset to isStaged(ctx, it.asset) }
 
     /** The engine can start as soon as the super-resolver is on disk. */
-    fun coreReady(ctx: Context): Boolean =
-        SPECS.filter { it.required }.all { isStaged(ctx, it.asset) }
+    fun coreReady(ctx: Context): Boolean {
+        // The engine is ready if either the SOTA or the fallback upscaler is present.
+        return isStaged(ctx, "swinir_x4.onnx") || isStaged(ctx, "hat_x4.onnx")
+    }
 
     fun allReady(ctx: Context): Boolean = SPECS.all { isStaged(ctx, it.asset) }
 
@@ -342,18 +344,19 @@ object ModelStore {
     @Synchronized
     fun ensure(ctx: Context, asset: String): String {
         val out = fileOf(ctx, asset)
+        // If it's staged correctly, return it.
         if (isStaged(ctx, asset)) return out.absolutePath
 
-        // A leftover of the wrong size is removed rather than handed to ORT.
+        // If it exists but is NOT staged (e.g. wrong size), delete it to avoid ORT crashes.
         if (out.exists()) out.delete()
 
-        val expected = runCatching { ctx.assets.openFd(asset).use { it.length } }
-            .getOrDefault(-1L)
-        if (expected <= 0L) {
+        // Check if it's in assets (bundled builds).
+        val inAssets = runCatching { ctx.assets.open(asset).use { it.available() > 0 } }.getOrDefault(false)
+        
+        if (!inAssets) {
             val spec = specOf(asset)
             throw IllegalStateException(
-                "النموذج \"${spec?.label ?: asset}\" غير موجود. " +
-                    "افتح «استعادة النماذج» واستورد الملف ${asset}."
+                "ملف النموذج '$asset' (${spec?.label ?: "غير معروف"}) غير موجود في التخزين المحلي أو ملفات التطبيق. يرجى استيراده يدوياً."
             )
         }
 

@@ -288,23 +288,30 @@ object SrEngine {
     fun plan(w: Int, h: Int): Plan {
         val xs = originList(w)
         val ys = originList(h)
-        val ow = max(w, TILE) * SCALE
+        
+        // The real output dimensions will be exactly src * SCALE, 
+        // because the tiling logic now covers the entire area.
+        val outW = w * SCALE
+        val outH = h * SCALE
+        
         val tiles = xs.size * ys.size
         val perTile = if (msPerTile > 1.0) msPerTile else 2500.0
-        // Rolling band + flush buffer + planar source, in bytes.
-        val working = 4L * ow * OUT_TILE * 4L + ow.toLong() * OUT_TILE * 4L +
+        
+        // Memory estimate for the rolling band architecture.
+        val working = 4L * outW * OUT_TILE * 4L + outW.toLong() * OUT_TILE * 4L +
             3L * max(w, TILE) * max(h, TILE) * 4L
+            
         return Plan(
             srcWidth = w,
             srcHeight = h,
-            outWidth = w * SCALE,
-            outHeight = h * SCALE,
+            outWidth = outW,
+            outHeight = outH,
             cols = xs.size,
             rows = ys.size,
             tiles = tiles,
             estimatedMs = (tiles * perTile).toLong(),
             workingMemMb = (working / (1024 * 1024)).toInt(),
-            bitmapMemMb = ((w.toLong() * SCALE * h * SCALE * 4L) / (1024 * 1024)).toInt()
+            bitmapMemMb = ((outW.toLong() * outH * 4L) / (1024 * 1024)).toInt()
         )
     }
 
@@ -315,9 +322,21 @@ object SrEngine {
         if (s <= TILE) return listOf(0)
         val list = ArrayList<Int>()
         var p = 0
-        while (p + TILE <= s) { list.add(p); p += STRIDE }
-        if (list.isEmpty() || list.last() != s - TILE) list.add(s - TILE)
-        return list
+        // Ensure we cover every pixel by continuing until the NEXT tile would start 
+        // beyond the end, but the CURRENT tile might not reach the end yet.
+        while (p < s - OVERLAP) {
+            list.add(p)
+            p += STRIDE
+            // If the next stride starts so late that the current tile didn't 
+            // reach the end, we'll add one final tile at the very edge.
+            if (p + TILE > s && list.last() < s - TILE) {
+                list.add(s - TILE)
+                break
+            }
+            if (p + TILE > s) break
+        }
+        if (list.isEmpty()) list.add(0)
+        return list.distinct()
     }
 
     /** One report per processed tile, consumed by the UI layer. */

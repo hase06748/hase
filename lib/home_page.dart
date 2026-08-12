@@ -139,34 +139,30 @@ class _HomePageState extends State<HomePage> {
       });
     } on PlatformException catch (e) {
       if (!mounted) return;
-      // A fresh install has no weights on disk — the APK ships without the
-      // 396 MB of graphs. That is a setup step, not a fault, so it gets its
-      // own state and a route into the importer rather than an error string.
-      if (e.code == 'MODELS_MISSING') {
-        setState(() {
+      setState(() {
+        _stage = Stage.idle; // Reset stage on error
+        if (e.code == 'MODELS_MISSING') {
           _modelsMissing = true;
           _engineReady = false;
           _backend = 'بانتظار النماذج';
           _error = null;
-        });
-      } else {
-        setState(() {
+        } else {
           _error = 'تعذّر تحميل النموذج: ${e.message}';
           _backend = 'خطأ';
-        });
-      }
+          _engineReady = false;
+        }
+      });
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        // The inference engine is native Android; on other platforms (e.g. the
-        // web preview) surface a clear explanation instead of a plugin error.
+        _stage = Stage.idle; // Reset stage on error
         _error = _isNative
             ? 'تعذّر تحميل النموذج: $e'
             : 'هذه معاينة للواجهة فقط.\nمحرّك المعالجة يعمل على أندرويد — ثبّت ملف APK لتجربة التحسين الفعلي.';
         _backend = _isNative ? 'خطأ' : 'معاينة';
+        _engineReady = false;
       });
     }
-  }
 
   /// Opens the importer and retries initialisation when something landed, so
   /// a model imported now is usable without restarting the app.
