@@ -181,11 +181,7 @@ object SrEngine {
     }
 
     private fun ensureModelOnDisk(ctx: Context): String {
-        return if (ModelStore.isStaged(ctx, MODEL_ASSET_SOTA) || ModelStore.fileOf(ctx, MODEL_ASSET_SOTA).exists()) {
-            ModelStore.ensure(ctx, MODEL_ASSET_SOTA)
-        } else {
-            ModelStore.ensure(ctx, MODEL_ASSET_FALLBACK)
-        }
+        return ModelStore.ensure(ctx, MODEL_ASSET_SOTA)
     }
 
     private fun tryCreate(
@@ -364,6 +360,7 @@ object SrEngine {
      */
     fun upscale(
         src: Bitmap,
+        turboMode: Boolean,
         governor: ThermalGovernor?,
         onProgress: (Tick) -> Unit
     ): Bitmap? {
@@ -466,8 +463,8 @@ object SrEngine {
                 done++
                 val tileMs = System.currentTimeMillis() - tileStart
 
-                // Pace the device: measure, then rest proportionally.
-                governor?.poll()
+                // Pace the device: measure, then rest proportionally to keep under 40°C unless turbo is on.
+                governor?.poll(turboMode)
                 onProgress(
                     Tick(
                         done = done,

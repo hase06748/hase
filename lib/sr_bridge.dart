@@ -506,6 +506,7 @@ class SrBridge {
     bool qualityGate = true,
     bool protectSkin = true,
     bool protectSky = true,
+    bool turboMode = false,
     int? threads,
   }) async {
     final r = await _method.invokeMethod<Map<dynamic, dynamic>>('enhance', {
@@ -517,6 +518,7 @@ class SrBridge {
       'qualityGate': qualityGate,
       'protectSkin': protectSkin,
       'protectSky': protectSky,
+      'turboMode': turboMode,
       if (threads != null) 'threads': threads,
     });
     if (r == null) return null;

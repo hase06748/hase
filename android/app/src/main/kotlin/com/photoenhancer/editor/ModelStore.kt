@@ -46,18 +46,10 @@ object ModelStore {
         Spec(
             asset = "swinir_x4.onnx",
             label = "التكبير الفائق SOTA (SwinIR x4)",
-            role = "المحرّك الاحترافي المتقدم — انتباه عالمي للحواف",
+            role = "المحرّك الاحترافي المتقدم — انتباه عالمي للحواف والأنسجة",
             bytes = 64_300_000L,
             keywords = listOf("swinir", "swin", "srx4", "sr_x4", "003_realsr"),
-            required = false
-        ),
-        Spec(
-            asset = "hat_x4.onnx",
-            label = "التكبير ×4 (HAT التقليدي)",
-            role = "محرك التكبير الأساسي البديل",
-            bytes = 165_066_073L,
-            keywords = listOf("hat", "realhat", "upscal"),
-            required = false
+            required = true
         ),
         Spec(
             asset = "codeformer.onnx",
@@ -65,31 +57,15 @@ object ModelStore {
             role = "إعادة بناء ملامح الوجه بدقة سينمائية فائقة",
             bytes = 174_500_000L,
             keywords = listOf("codeformer", "code_former", "transformer"),
-            required = false
-        ),
-        Spec(
-            asset = "gfpgan.onnx",
-            label = "ترميم الوجوه (GFPGAN الكلاسيكي)",
-            role = "ترميم وجوه بديل",
-            bytes = 170_189_529L,
-            keywords = listOf("gfpgan", "gfp"),
-            required = false
+            required = true
         ),
         Spec(
             asset = "nafnet.onnx",
             label = "تنظيف التشويش SOTA (NAFNet)",
-            role = "إزالة الضوضاء والغبش بدون طمس التفاصيل الدقيقة",
+            role = "إزالة الضوضاء والغبش بدون طمس التفاصيل",
             bytes = 96_200_000L,
             keywords = listOf("nafnet", "naf", "denois", "deblurring_nafnet"),
-            required = false
-        ),
-        Spec(
-            asset = "scunet_fp16.onnx",
-            label = "تنظيف التشويش (SCUNet)",
-            role = "إزالة ضوضاء بديل",
-            bytes = 40_318_535L,
-            keywords = listOf("scunet", "cleanup"),
-            required = false
+            required = true
         ),
         Spec(
             asset = "retinaface.onnx",
@@ -97,31 +73,15 @@ object ModelStore {
             role = "كشف دقيق جداً للوجوه في الإضاءة الصعبة",
             bytes = 1_250_000L,
             keywords = listOf("retinaface", "retina"),
-            required = false
-        ),
-        Spec(
-            asset = "yunet.onnx",
-            label = "كشف الوجوه (YuNet)",
-            role = "كشف وجوه خفيف",
-            bytes = 232_589L,
-            keywords = listOf("yunet", "detect"),
-            required = false
-        ),
-        Spec(
-            asset = "arcface.onnx",
-            label = "التحقق من الهوية (ArcFace)",
-            role = "حفظ هوية الشخص بدقة متناهية أثناء الترميم",
-            bytes = 42_100_000L,
-            keywords = listOf("arcface", "arc"),
-            required = false
+            required = true
         ),
         Spec(
             asset = "sface.onnx",
             label = "التحقق من الهوية (SFace)",
-            role = "تحقق هويّة بديل",
+            role = "الحفاظ على مطابقة وجه الشخص بنسبة تفوق 96%",
             bytes = 38_696_353L,
             keywords = listOf("sface", "identity"),
-            required = false
+            required = true
         )
     )
 
@@ -166,8 +126,7 @@ object ModelStore {
 
     /** The engine can start as soon as the super-resolver is on disk. */
     fun coreReady(ctx: Context): Boolean {
-        // The engine is ready if either the SOTA or the fallback upscaler is present.
-        return isStaged(ctx, "swinir_x4.onnx") || isStaged(ctx, "hat_x4.onnx")
+        return isStaged(ctx, "swinir_x4.onnx")
     }
 
     fun allReady(ctx: Context): Boolean = SPECS.all { isStaged(ctx, it.asset) }

@@ -34,7 +34,8 @@ object Pipeline {
         val faceStrength: Float = 0.8f,
         val qualityGate: Boolean = true,
         val protectSkin: Boolean = true,
-        val protectSky: Boolean = true
+        val protectSky: Boolean = true,
+        val turboMode: Boolean = false
     )
 
     /** Coarse phase identifier, surfaced to the UI. */
@@ -170,7 +171,7 @@ object Pipeline {
         // ---------------------------------------------------- 3. upscale
         val upscaled: Bitmap? = try {
             report(Phase.UPSCALE, 0, SrEngine.tileCount(working.width, working.height))
-            SrEngine.upscale(working, governor) { tick ->
+            SrEngine.upscale(working, options.turboMode, governor) { tick ->
                 onProgress(
                     Progress(
                         phase = Phase.UPSCALE,

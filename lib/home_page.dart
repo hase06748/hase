@@ -82,6 +82,7 @@ class _HomePageState extends State<HomePage> {
   bool _cleanup = true;
   bool _faceRestore = true;
   bool _qualityGate = true;
+  bool _turboMode = false;
 
   /// Every model's resolved accelerator. Only four of the five load lazily
   /// during a run, so this is refreshed once the run finishes.
@@ -123,6 +124,7 @@ class _HomePageState extends State<HomePage> {
           _cleanup = prefs.getBool('cleanup') ?? true;
           _faceRestore = prefs.getBool('faceRestore') ?? true;
           _qualityGate = prefs.getBool('qualityGate') ?? true;
+          _turboMode = prefs.getBool('turboMode') ?? false;
         });
       }
       final info = await SrBridge.deviceInfo();
@@ -198,6 +200,7 @@ class _HomePageState extends State<HomePage> {
     await prefs.setBool('cleanup', _cleanup);
     await prefs.setBool('faceRestore', _faceRestore);
     await prefs.setBool('qualityGate', _qualityGate);
+    await prefs.setBool('turboMode', _turboMode);
   }
 
   Future<void> _pick() async {
@@ -261,6 +264,7 @@ class _HomePageState extends State<HomePage> {
         cleanup: _cleanup,
         faceRestore: _faceRestore,
         qualityGate: _qualityGate,
+        turboMode: _turboMode,
       );
       _ticker?.cancel();
       if (!mounted) return;
@@ -1021,20 +1025,38 @@ class _HomePageState extends State<HomePage> {
       );
     }
 
-    return Row(
+    return Column(
       children: [
-        chip('تنظيف', Icons.auto_fix_high_outlined, _cleanup, () {
-          setState(() => _cleanup = !_cleanup);
-          _persist();
-        }),
-        chip('ترميم الوجوه', Icons.face_retouching_natural, _faceRestore, () {
-          setState(() => _faceRestore = !_faceRestore);
-          _persist();
-        }),
-        chip('فحص الجودة', Icons.verified_outlined, _qualityGate, () {
-          setState(() => _qualityGate = !_qualityGate);
-          _persist();
-        }),
+        Row(
+          children: [
+            chip('تنظيف', Icons.auto_fix_high_outlined, _cleanup, () {
+              setState(() => _cleanup = !_cleanup);
+              _persist();
+            }),
+            chip('ترميم الوجوه', Icons.face_retouching_natural, _faceRestore, () {
+              setState(() => _faceRestore = !_faceRestore);
+              _persist();
+            }),
+            chip('فحص الجودة', Icons.verified_outlined, _qualityGate, () {
+              setState(() => _qualityGate = !_qualityGate);
+              _persist();
+            }),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            chip(
+              _turboMode ? 'وضع التوربو (نشط - أقصى أداء)' : 'حماية البطارية (تحديد 40°C)',
+              _turboMode ? Icons.bolt_rounded : Icons.thermostat_rounded,
+              _turboMode,
+              () {
+                setState(() => _turboMode = !_turboMode);
+                _persist();
+              },
+            ),
+          ],
+        ),
       ],
     );
   }

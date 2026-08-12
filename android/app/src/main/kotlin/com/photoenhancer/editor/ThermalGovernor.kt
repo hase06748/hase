@@ -55,59 +55,38 @@ class ThermalGovernor(ctx: Context) {
     fun pausedMillis(): Long = pausedTotalMs
 
     /** Cheap enough to call between tiles; the OS is polled once a second. */
-    fun poll() {
+    fun poll(turboMode: Boolean = false) {
         val now = System.currentTimeMillis()
         if (now - lastPoll < 1000L) return
         lastPoll = now
 
-        val pm = power ?: return
-        val status = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            runCatching { pm.currentThermalStatus }.getOrDefault(PowerManager.THERMAL_STATUS_NONE)
+        val currentTemp = physicalTempCelsius()
+
+        // If Turbo Mode is active, we ignore the strict 40C limit and run at max speed
+        if (turboMode) {
+            factor = 0.0
+            level = Level.NORMAL
+            return
+        }
+
+        // Strict 40°C Battery Protection Guard for Xiaomi 15T Pro
+        var f = 0.0
+        var lv = Level.NORMAL
+
+        if (currentTemp >= 41.5f) {
+            f = 3.5 // Heavy cooling pause
+            lv = Level.CRITICAL
+        } else if (currentTemp >= 40.0f) {
+            f = 2.0 // Moderate cooling pause to lock at 40°C
+            lv = Level.HOT
+        } else if (currentTemp >= 39.0f) {
+            f = 0.8 // Light preemptive pacing
+            lv = Level.WARM
         } else {
-            PowerManager.THERMAL_STATUS_NONE
+            f = 0.0
+            lv = Level.NORMAL
         }
 
-        // Forecast 20 s ahead: 0 = cold, 1 = about to throttle.
-        headroom = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            runCatching { pm.getThermalHeadroom(20) }
-                .getOrDefault(Float.NaN)
-                .let { if (it.isNaN() || it.isInfinite()) -1f else it }
-        } else {
-            -1f
-        }
-
-        // Status is authoritative, headroom only ever makes us more cautious.
-        var f = when {
-            status >= PowerManager.THERMAL_STATUS_SEVERE -> 3.0
-            status >= PowerManager.THERMAL_STATUS_MODERATE -> 1.2
-            status >= PowerManager.THERMAL_STATUS_LIGHT -> 0.4
-            else -> 0.0
-        }
-        var lv = when {
-            status >= PowerManager.THERMAL_STATUS_SEVERE -> Level.CRITICAL
-            status >= PowerManager.THERMAL_STATUS_MODERATE -> Level.HOT
-            status >= PowerManager.THERMAL_STATUS_LIGHT -> Level.WARM
-            else -> Level.NORMAL
-        }
-
-        if (headroom >= 0f) {
-            val hf = when {
-                headroom >= 0.98f -> 2.4
-                headroom >= 0.90f -> 1.0
-                headroom >= 0.80f -> 0.35
-                else -> 0.0
-            }
-            if (hf > f) {
-                f = hf
-                lv = when {
-                    headroom >= 0.98f -> Level.CRITICAL
-                    headroom >= 0.90f -> Level.HOT
-                    else -> Level.WARM
-                }
-            }
-        }
-
-        // Move gradually so the throughput does not oscillate.
         factor = if (f > factor) min(f, factor + 0.5) else max(f, factor - 0.25)
         level = lv
     }

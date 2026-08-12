@@ -279,6 +279,7 @@ class MainActivity : FlutterActivity() {
                     val budget = MemoryBudget.forDevice(applicationContext, requested)
                     val maxPixels = budget.maxPixels
                     val sharpen = (call.argument<Double>("sharpen") ?: 0.35).toFloat()
+                    val turboMode = call.argument<Boolean>("turboMode") ?: false
                     val opts = Pipeline.Options(
                         maxPixels = maxPixels,
                         sharpen = sharpen,
@@ -287,7 +288,8 @@ class MainActivity : FlutterActivity() {
                         faceStrength = (call.argument<Double>("faceStrength") ?: 0.8).toFloat(),
                         qualityGate = call.argument<Boolean>("qualityGate") ?: true,
                         protectSkin = call.argument<Boolean>("protectSkin") ?: true,
-                        protectSky = call.argument<Boolean>("protectSky") ?: true
+                        protectSky = call.argument<Boolean>("protectSky") ?: true,
+                        turboMode = turboMode
                     )
                     val threads = call.argument<Int>("threads")
                         ?: Runtime.getRuntime().availableProcessors()
